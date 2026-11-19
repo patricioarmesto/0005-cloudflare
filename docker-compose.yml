@@ -1,0 +1,76 @@
+# docker-compose.yml — Orquesta el ejercicio completo con un solo comando.
+# ¿Por qué healthchecks en Todo servicio de datos? Porque el edge hace Ping al arrancar:
+# sin depends_on + condition: service_healthy, el primer `docker compose up` podría perder
+# la carrera contra Postgres o Redis y abortar con un error confuso para quien estudia.
+
+services:
+  # Postgres guarda las 5 páginas y el histórico de HIT/MISS. Es la fuente de verdad,
+  # no la caché: si Redis se cae, el contenido todavía está acá.
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: cloudflare
+    ports:
+      # Ojo: 5436 en el host para no chocar con los ejercicios 0001-0003.
+      - "5436:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d cloudflare"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+      start_period: 3s
+
+  # Redis es el edge cache. Las keys viven 60 s y se borran con SCAN + DEL,
+  # nunca con FLUSHDB (ver edge.go y ADR-002).
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6382:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+
+  # El edge y el origen son el mismo binario Go con dos roles separados por archivo.
+  # Los delays son env vars para poder experimentar sin recompilar.
+  backend:
+    build: ./backend
+    environment:
+      PORT: "8080"
+      DATABASE_URL: "postgres://app:app@postgres:5432/cloudflare?sslmode=disable"
+      REDIS_ADDR: "redis:6379"
+      ORIGIN_DELAY_MS: "200"
+      EDGE_DELAY_MS: "5"
+      CACHE_TTL_SECONDS: "60"
+    ports:
+      - "8083:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/health || exit 1"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+      start_period: 3s
+
+  # Vite se compila en el build y nginx sirve el resultado. Además hace de proxy:
+  # el browser llama a /pagina y /api en el mismo origen, así que no dependemos de CORS.
+  frontend:
+    build: ./frontend
+    ports:
+      - "5177:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  pgdata:

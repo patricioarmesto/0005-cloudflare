@@ -1,0 +1,13 @@
+# .gitignore — Evita que el repositorio arrastre artefactos generados en la laptop.
+# ¿Por qué hace falta? `npm run build` crea frontend/dist y `npm ci` crea
+# frontend/node_modules; si se commitean, un build de macOS puede romper el de Alpine.
+frontend/node_modules/
+frontend/dist/
+
+# Binarios y resultados de test de Go. `go build ./...` escribe el ejecutable con el
+# último elemento del module path, que acá es `0005-cloudflare`.
+backend/0005-cloudflare
+backend/edge
+backend/*.test
+
+.DS_Store

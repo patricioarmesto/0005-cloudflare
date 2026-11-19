@@ -1,0 +1,6 @@
+# .dockerignore — Evita que node_modules o builds viejos de la laptop se copien adentro
+# del contexto de Docker. Si hacés esto distinto, un node_modules de macOS puede romper
+# el npm install dentro de Alpine (binarios nativos incompatibles).
+node_modules
+dist
+npm-debug.log

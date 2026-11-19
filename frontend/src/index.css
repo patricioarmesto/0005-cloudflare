@@ -1,0 +1,6 @@
+/* index.css — Punto de entrada de los estilos. Las tres directivas expanden el CSS de
+   Tailwind en el build. No escribimos CSS custom a propósito: todo el diseño del panel
+   se expresa con clases utilitarias en App.tsx para que el alumno vea el estado en un solo archivo. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
