@@ -14,7 +14,7 @@ Un único proceso Go contiene dos roles separados por archivo. `edge.go` decide 
 A favor:
 - `docker compose up` levanta un solo backend; no hay que explicar descubrimiento de servicios entre dos binarios.
 - Los 5 ms y los 200 ms son elegidos, no medidos: el contraste es reproducible en cualquier laptop.
-- Separar por archivo deja claro qué código es del POP y qué código es del origen.
+- Separar por archivo deja claro qué código es del edge y qué código es del origen.
 - El origen puede caer (o demorarse) y el edge mantiene sirviendo HIT desde Redis.
 
 En contra:
